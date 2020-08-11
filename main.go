@@ -128,7 +128,7 @@ func LambdaInvoke(msg string, funcName string) {
 
 	payload := iEvent{Id: msg, Body: string(jsonbody), Obj_Name: msg}
 	bPayload, err := json.Marshal(payload)
-	fmt.Println(string(bPayload))
+	fmt.Println("id: " + msg)
 
 	result, err := client.Invoke(&lambda.InvokeInput{FunctionName: aws.String(funcName), Payload: bPayload})
 	if err != nil {
