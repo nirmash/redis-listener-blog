@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws	"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/go-redis/redis/v8"
