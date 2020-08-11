@@ -10,7 +10,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws	"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/go-redis/redis/v8"
@@ -112,7 +112,7 @@ func main() {
 	PubSubListen()
 }
 
-func LambdaInvoke(id string, msg string, funcName string) {
+func LambdaInvoke(msg string, funcName string) {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -126,7 +126,7 @@ func LambdaInvoke(id string, msg string, funcName string) {
 		return
 	}
 
-	payload := iEvent{Id: id, Body: string(jsonbody), Obj_Name: msg}
+	payload := iEvent{Id: msg, Body: string(jsonbody), Obj_Name: msg}
 	bPayload, err := json.Marshal(payload)
 	fmt.Println(string(bPayload))
 
@@ -212,8 +212,7 @@ func PubSubListen() {
 			checkMap, flag := IsActionable(msg)
 			if flag == true {
 				for _, lmbda := range checkMap {
-					sUUID := getGUID()
-					go LambdaInvoke(sUUID, msg.Payload, lmbda)
+					go LambdaInvoke(msg.Payload, lmbda)
 				}
 			}
 		}
