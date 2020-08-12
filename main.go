@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,17 +17,6 @@ import (
 
 var ctx = context.Background()
 var cmds []string
-
-func getGUID() string {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
-		log.Fatal(err)
-	}
-	uuid := fmt.Sprintf("%x-%x-%x-%x-%x",
-		b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-	return uuid
-}
 
 func getRedisClient() *redis.Client {
 	var redisHost = os.Getenv("REDIS_MASTER_HOST") + ":" + os.Getenv("REDIS_MASTER_PORT")
@@ -66,7 +54,6 @@ func InitService() {
 		log.Fatal(err)
 	}
 	defer rdb.Close()
-
 	cmds = strings.Split(os.Getenv("SUPPORTED_COMMANDS"), ",")
 }
 
@@ -113,6 +100,14 @@ func main() {
 }
 
 func LambdaInvoke(msg string, funcName string) {
+
+	f, err := os.OpenFile("/tmp/redis-listener.log",
+		os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	defer f.Close()
+
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 	}))
@@ -130,12 +125,19 @@ func LambdaInvoke(msg string, funcName string) {
 	bPayload, err := json.Marshal(payload)
 	fmt.Println("id: " + msg)
 
+	if _, err := f.WriteString("id: " + msg + "\n"); err != nil {
+		log.Println(err)
+	}
+
 	result, err := client.Invoke(&lambda.InvokeInput{FunctionName: aws.String(funcName), Payload: bPayload})
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
 	fmt.Println(string(result.Payload))
+	if _, err := f.WriteString("id: " + msg + " result " + string(result.Payload) + "\n"); err != nil {
+		log.Println(err)
+	}
 	defer rdb.Close()
 }
 
@@ -212,7 +214,7 @@ func PubSubListen() {
 			checkMap, flag := IsActionable(msg)
 			if flag == true {
 				for _, lmbda := range checkMap {
-					go LambdaInvoke(msg.Payload, lmbda)
+					LambdaInvoke(msg.Payload, lmbda)
 				}
 			}
 		}
